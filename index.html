@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>xLua Obfuscator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.22.9/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs/loader.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #editor { height: 300px; }
+    body { background-color: #000000; color: #ffffff; }
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #000000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 1;
+      transition: opacity 0.5s ease-out;
+    }
+    .loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .output-container {
+      max-height: 150px;
+      overflow-y: auto;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    function ObfuscatorApp() {
+      const [inputCode, setInputCode] = useState(`local function example(a, b)\n    local result = a + b\n    print(result)\n    for i = 1, 5 do\n        print(i)\n    end\n    return result\nend\nexample(5, 10)`);
+      const [outputCode, setOutputCode] = useState('');
+      const [isLoading, setIsLoading] = useState(true);
+      const editorRef = useRef(null);
+      const monacoRef = useRef(null);
+      let stringCounter = 0;
+
+      useEffect(() => {
+        const timer = setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
+        return () => clearTimeout(timer);
+      }, []);
+
+      useEffect(() => {
+        if (!isLoading) {
+          require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs' } });
+          require(['vs/editor/editor.main'], () => {
+            monacoRef.current = monaco;
+            editorRef.current = monaco.editor.create(document.getElementById('editor'), {
+              value: inputCode,
+              language: 'lua',
+              theme: 'vs-dark',
+              automaticLayout: true,
+            });
+            editorRef.current.onDidChangeModelContent(() => {
+              setInputCode(editorRef.current.getValue());
+            });
+          });
+        }
+      }, [isLoading]);
+
+      const dictionary = [
+        'apple', 'bear', 'cloud', 'dream', 'eagle', 'forest', 'galaxy', 'horizon', 'island', 'jungle',
+        'kite', 'lake', 'moon', 'night', 'ocean', 'peak', 'quest', 'river', 'sky', 'tree',
+        'valley', 'wind', 'zenith', 'shadow', 'storm', 'flame', 'glade', 'ridge', 'wave', 'dusk'
+      ];
+
+      const generateRandomString = (length) => {
+        const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';
+        let result = '';
+        stringCounter++;
+        const useWord = stringCounter % 3 === 0; // Every third string has one word
+        if (useWord) {
+          const word = dictionary[Math.floor(Math.random() * dictionary.length)];
+          const wordPos = Math.floor(Math.random() * (length - word.length + 1));
+          // Fill with random chars before word
+          for (let i = 0; i < wordPos; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          // Add word
+          result += word;
+          // Fill remaining with random chars
+          while (result.length < length) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+        } else {
+          // Pure random chars
+          for (let i = 0; i < length; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+        }
+        // Ensure starts with letter or underscore for LuaU compatibility
+        if (!/[a-zA-Z_]/.test(result[0])) {
+          result = 'a' + result.slice(1);
+        }
+        // Ensure exact length
+        return result.slice(0, length);
+      };
+
+      const createDummyFunction = () => {
+        const dummyName = generateRandomString(100);
+        let dummyBody = `${generateRandomString(100)} ${generateRandomString(100)}=${Math.random() * 100 | 0};`;
+        for (let i = 0; i < Math.random() * 3 + 2; i++) {
+          dummyBody += `${generateRandomString(100)}=${Math.random() * 100 | 0};`;
+        }
+        return `${generateRandomString(100)} ${generateRandomString(100)} ${dummyName}()${dummyBody}end `;
+      };
+
+      const obfuscate = (code) => {
+        stringCounter = 0; // Reset counter for each obfuscation
+        const keywordMap = {
+          'print': generateRandomString(100),
+          'for': generateRandomString(100),
+          'end': generateRandomString(100),
+          'local': generateRandomString(100),
+          'function': generateRandomString(100),
+          'return': generateRandomString(100),
+        };
+        const varMap = {};
+        const replaceVars = (str) => {
+          return str.replace(/([a-zA-Z_][a-zA-Z0-9_]*)/g, (v) => {
+            if (keywordMap[v]) return keywordMap[v];
+            if (varMap[v]) return varMap[v];
+            const newVar = generateRandomString(100);
+            varMap[v] = newVar;
+            return newVar;
+          });
+        };
+        const lines = code.split('\n');
+        let obfCode = '';
+        const dummyCount = Math.floor(Math.random() * 5) + 3;
+        for (let i = 0; i < dummyCount; i++) {
+          obfCode += createDummyFunction();
+        }
+        for (let line of lines) {
+          if (line.trim()) {
+            line = line.replace(/\s+/g, '').replace(/--.*$/, '');
+            line = replaceVars(line);
+            obfCode += line;
+          }
+        }
+        obfCode = obfCode.replace(/\s+/g, '');
+        return `-- Obfuscated with xLua Obfuscator\n${generateRandomString(100)} ${generateRandomString(100)}=${Math.random() * 1000 | 0};${obfCode};${generateRandomString(100)} ${generateRandomString(100)} ${generateRandomString(100)}()end;`;
+      };
+
+      const triggerConfetti = () => {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#ffffff', '#cccccc', '#999999'], // Grayscale confetti
+        });
+      };
+
+      const handleObfuscate = () => {
+        const result = obfuscate(inputCode);
+        setOutputCode(result);
+        triggerConfetti();
+      };
+
+      const copyToClipboard = () => {
+        navigator.clipboard.writeText(outputCode);
+        alert('Copied to clipboard!');
+      };
+
+      return (
+        <div>
+          <div className={`loading-screen ${isLoading ? '' : 'hidden'}`}>
+            <h1 className="text-4xl font-bold text-white">xLua Obfuscator</h1>
+          </div>
+          {!isLoading && (
+            <div className="min-h-screen flex flex-col items-center p-6">
+              <h1 className="text-4xl font-bold mb-6 text-white">xLua Obfuscator</h1>
+              <div className="w-full max-w-4xl bg-black border border-gray-600 rounded-lg shadow-lg p-6">
+                <div className="mb-4">
+                  <h2 className="text-xl font-semibold mb-2 text-white">Input LuaU Code</h2>
+                  <p className="text-gray-300 mb-2">
+                    Protect your Roblox scripts with xLua Obfuscator! Our tool transforms your LuaU code into an unreadable format, making it extremely difficult for others to reverse-engineer. It preserves functionality, ensures compatibility with Roblox Studio, and provides a sleek, user-friendly interface for effortless obfuscation.
+                  </p>
+                  <div id="editor" className="border border-gray-600 rounded"></div>
+                </div>
+                <button
+                  onClick={handleObfuscate}
+                  className="w-full bg-white hover:bg-gray-200 text-black font-bold py-2 px-4 rounded mb-4 transition duration-300"
+                >
+                  Obfuscate
+                </button>
+                {outputCode && (
+                  <div>
+                    <h2 className="text-xl font-semibold mb-2 text-white">Obfuscated Code</h2>
+                    <div className="bg-black p-4 rounded border border-gray-600">
+                      <pre className="text-sm text-gray-300 output-container">{outputCode}</pre>
+                      <button
+                        onClick={copyToClipboard}
+                        className="mt-2 bg-white hover:bg-gray-200 text-black font-bold py-1 px-3 rounded transition duration-300"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<ObfuscatorApp />, document.getElementById('root'));
+  </script>
+</body>
+</html>
