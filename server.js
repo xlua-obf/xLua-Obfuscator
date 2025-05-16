@@ -79,11 +79,11 @@ module.exports = async (req, res) => {
         await fs.writeFile(inputFile, inputCode);
 
         const args = preset && preset !== 'custom' ? preset : flags.join(' ');
-        const command = `hercules-obfuscator-main/src/hercules.lua ${args} --sanity -i ${inputFile} -o ${outputFile}`;
+        const command = `lua hercules-obfuscator-main/src/hercules.lua ${args} --sanity -i ${inputFile} -o ${outputFile}`;
 
         try {
             console.log('Executing command:', command);
-            await execPromise(command, { env: { ...process.env, LUA_PATH: 'hercules-obfuscator-main/modules/?.lua' } });
+            await execPromise(command, { env: { ...process.env, LUA_PATH: './hercules-obfuscator-main/modules/?.lua' } });
         } catch (err) {
             console.error('Execution error:', err);
             return res.status(500).json({ error: 'Obfuscation failed', details: err.message });
