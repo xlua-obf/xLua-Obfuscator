@@ -90,50 +90,8 @@ module.exports = async (req, res) => {
         }
         log(reqId, 'Validated options', { preset, flags });
 
-        // Mock Hercules execution (replace with Lua when binary added)
         const obfuscatedCode = `-- Mocked output\n${inputCode}\n-- Preset: ${preset}\n-- Flags: ${flags.join(', ')}`;
         log(reqId, 'Mocked obfuscation successful', { outputLength: obfuscatedCode.length });
-
-        /*
-        // Uncomment for actual Hercules execution with Lua binary
-        const tempDir = path.join(__dirname, 'temp');
-        await fs.mkdir(tempDir, { recursive: true });
-        log(reqId, 'Created temp directory', { tempDir });
-
-        const uniqueId = Date.now() + Math.random().toString(36).substring(2);
-        const inputFile = path.join(tempDir, `input_${uniqueId}.lua`);
-        const outputFile = path.join(tempDir, `output_${uniqueId}.lua`);
-
-        await fs.writeFile(inputFile, inputCode);
-        log(reqId, 'Wrote input file', { inputFile });
-
-        const args = preset && preset !== 'custom' ? preset : flags.join(' ');
-        const command = `./hercules-obfuscator-main/lua hercules-obfuscator-main/src/hercules.lua ${args} --sanity -i ${inputFile} -o ${outputFile}`;
-        log(reqId, 'Executing Hercules', { command });
-
-        try {
-            await execPromise(command, { env: { ...process.env, LUA_PATH: './hercules-obfuscator-main/modules/?.lua' } });
-            log(reqId, 'Hercules execution successful');
-        } catch (err) {
-            log(reqId, 'Hercules execution failed', { error: err.message });
-            return res.status(500).json({ error: 'Obfuscation failed', details: err.message });
-        }
-
-        let obfuscatedCode;
-        try {
-            obfuscatedCode = await fs.readFile(outputFile, 'utf8');
-            log(reqId, 'Read obfuscated output', { outputFile, length: obfuscatedCode.length });
-        } catch (err) {
-            log(reqId, 'Output read error', { error: err.message });
-            return res.status(500).json({ error: 'Failed to read obfuscated output', details: err.message });
-        }
-
-        await Promise.all([
-            fs.unlink(inputFile).catch(() => log(reqId, 'Failed to delete input file')),
-            fs.unlink(outputFile).catch(() => log(reqId, 'Failed to delete output file'))
-        ]);
-        log(reqId, 'Cleaned up temp files');
-        */
 
         log(reqId, 'Sending response', { status: 200 });
         res.status(200).json({ obfuscated: obfuscatedCode });
