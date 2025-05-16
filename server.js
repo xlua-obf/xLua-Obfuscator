@@ -2,10 +2,10 @@ const { promises: fs } = require('fs');
 const { exec } = require('child_process');
 const path = require('path');
 const util = require('util');
+const formidable = require('formidable');
 
 const execPromise = util.promisify(exec);
 
-// Valid Hercules flags and presets
 const validFlags = [
     '-cf', '--control_flow',
     '-se', '--string_encoding',
@@ -23,67 +23,80 @@ const validFlags = [
 ];
 const validPresets = ['--min', '--mid', '--max'];
 
-// Vercel serverless function
 module.exports = async (req, res) => {
+    if (req.method === 'GET') {
+        return res.status(200).json({ status: 'ok' });
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        // Parse FormData
-        const inputCode = req.files?.luafile?.data.toString('utf8') || req.body.code;
-        if (!inputCode) {
+        const form = formidable({ multiples: false });
+        const { fields, files } = await new Promise((resolve, reject) => {
+            form.parse(req, (err, fields, files) => {
+                if (err) reject(err);
+                else resolve({ fields, files });
+            });
+        });
+
+        let inputCode;
+        if (files.luafile?.[0]) {
+            inputCode = await fs.readFile(files.luafile[0].filepath, 'utf8');
+        } else if (fields.code?.[0]) {
+            inputCode = fields.code[0];
+        } else {
+            console.error('No code provided');
             return res.status(400).json({ error: 'No Lua code or file provided' });
         }
 
-        // Validate preset or flags
-        const preset = req.body.preset || '';
+        const preset = fields.preset?.[0] || '';
         let flags = [];
         if (preset === 'custom') {
             try {
-                flags = JSON.parse(req.body.flags || '[]');
+                flags = JSON.parse(fields.flags?.[0] || '[]');
                 if (!Array.isArray(flags) || flags.some(f => !validFlags.includes(f))) {
+                    console.error('Invalid flags:', flags);
                     return res.status(400).json({ error: 'Invalid flags provided' });
                 }
-            } catch {
+            } catch (err) {
+                console.error('Flags parsing error:', err);
                 return res.status(400).json({ error: 'Invalid flags format' });
             }
         } else if (preset && !validPresets.includes(preset)) {
+            console.error('Invalid preset:', preset);
             return res.status(400).json({ error: 'Invalid preset provided' });
         }
 
-        // Create temp directory
         const tempDir = path.join(__dirname, 'temp');
         await fs.mkdir(tempDir, { recursive: true });
 
-        // Generate unique filenames
         const uniqueId = Date.now() + Math.random().toString(36).substring(2);
         const inputFile = path.join(tempDir, `input_${uniqueId}.lua`);
         const outputFile = path.join(tempDir, `output_${uniqueId}.lua`);
 
-        // Write input code
         await fs.writeFile(inputFile, inputCode);
 
-        // Construct Hercules command
         const args = preset && preset !== 'custom' ? preset : flags.join(' ');
-        const command = `lua hercules-obfuscator-main/src/hercules.lua ${args} --sanity -i ${inputFile} -o ${outputFile}`;
+        const command = `hercules-obfuscator-main/src/hercules.lua ${args} --sanity -i ${inputFile} -o ${outputFile}`;
 
-        // Execute Hercules
         try {
+            console.log('Executing command:', command);
             await execPromise(command, { env: { ...process.env, LUA_PATH: 'hercules-obfuscator-main/modules/?.lua' } });
         } catch (err) {
+            console.error('Execution error:', err);
             return res.status(500).json({ error: 'Obfuscation failed', details: err.message });
         }
 
-        // Read output
         let obfuscatedCode;
         try {
             obfuscatedCode = await fs.readFile(outputFile, 'utf8');
         } catch (err) {
+            console.error('Output read error:', err);
             return res.status(500).json({ error: 'Failed to read obfuscated output', details: err.message });
         }
 
-        // Clean up
         await Promise.all([
             fs.unlink(inputFile).catch(() => {}),
             fs.unlink(outputFile).catch(() => {})
@@ -91,6 +104,7 @@ module.exports = async (req, res) => {
 
         res.status(200).json({ obfuscated: obfuscatedCode });
     } catch (err) {
+        console.error('Server error:', err);
         res.status(500).json({ error: 'Server error', details: err.message });
     }
 };
