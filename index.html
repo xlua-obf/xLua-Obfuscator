@@ -54,65 +54,65 @@
                 id="preset"
                 class="w-full p-2 border border-light-blue rounded-md bg-dark-bg text-text-gray mb-4"
             >
-                <option value="--min" class="bg-dark-bg text-text-gray">Minimum Obfuscation (--min)</option>
-                <option value="--mid" class="bg-dark-bg text-text-gray">Medium Obfuscation (--mid)</option>
-                <option value="--max" class="bg-dark-bg text-text-gray">Maximum Obfuscation (--max)</option>
-                <option value="custom" class="bg-dark-bg text-text-gray">Custom Flags</option>
+                <option value="--min">Minimum Obfuscation (--min)</option>
+                <option value="--mid">Medium Obfuscation (--mid)</option>
+                <option value="--max">Maximum Obfuscation (--max)</option>
+                <option value="custom">Custom Flags</option>
             </select>
             <div id="customFlags" class="hidden border border-light-blue p-4 rounded-md bg-dark-bg">
                 <h3 class="text-md font-medium text-text-gray mb-2">Custom Obfuscation Flags</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-cf" class="h-4 w-4 text-light-blue border-light-blue">
-                        <span class="text-text-gray">Control Flow Obfuscation (-cf, --control_flow)</span>
+                        <span class="text-text-gray">Control Flow Obfuscation (-cf)</span>
                     </label>
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-se" class="h-4 w-4 text-light-blue border-light-blue">
-                        <span class="text-text-gray">String Encoding (-se, --string_encoding)</span>
+                        <span class="text-text-gray">String Encoding (-se)</span>
                     </label>
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-vr" class="h-4 w-4 text-light-blue border-light-blue">
-                        <span class="text-text-gray">Variable Renaming (-vr, --variable_renaming)</span>
+                        <span class="text-text-gray">Variable Renaming (-vr)</span>
                     </label>
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-gci" class="h-4 w-4 text-light-blue border-light-blue">
-                        <span class="text-text-gray">Garbage Code Injection (-gci, --garbage_code)</span>
+                        <span class="text-text-gray">Garbage Code Injection (-gci)</span>
                     </label>
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-opi" class="h-4 w-4 text-light-blue border-light-blue">
-                        <span class="text-text-gray">Opaque Predicates (-opi, --opaque_preds)</span>
+                        <span class="text-text-gray">Opaque Predicates (-opi)</span>
                     </label>
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-be" class="h-4 w-4 text-light-blue border-light-blue">
-                        <span class="text-text-gray">Bytecode Encoding (-be, --bytecode_encoder)</span>
+                        <span class="text-text-gray">Bytecode Encoding (-be)</span>
                     </label>
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-st" class="h-4 w-4 text-light-blue border-light-blue">
-                        <span class="text-text-gray">String to Expression (-st, --string_to_expr)</span>
+                        <span class="text-text-gray">String to Expression (-st)</span>
                     </label>
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-vm" class="h-4 w-4 text-light-blue border-light-blue">
-                        <span class="text-text-gray">Virtual Machine (-vm, --virtual_machine)</span>
+                        <span class="text-text-gray">Virtual Machine (-vm)</span>
                     </label>
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-wif" class="h-4 w-4 text-light-blue border-light-blue">
-                        <span class="text-text-gray">Function Wrapping (-wif, --wrap_in_func)</span>
+                        <span class="text-text-gray">Function Wrapping (-wif)</span>
                     </label>
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-fi" class="h-4 w-4 text-light-blue border-light-blue">
-                        <span class="text-text-gray">Function Inlining (-fi, --func_inlining)</span>
+                        <span class="text-text-gray">Function Inlining (-fi)</span>
                     </label>
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-dc" class="h-4 w-4 text-light-blue border-light-blue">
-                        <span class="text-text-gray">Dynamic Code (-dc, --dynamic_code)</span>
+                        <span class="text-text-gray">Dynamic Code (-dc)</span>
                     </label>
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-c" class="h-4 w-4 text-light-blue border-light-blue">
-                        <span class="text-text-gray">Compressor (-c, --compressor)</span>
+                        <span class="text-text-gray">Compressor (-c)</span>
                     </label>
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-at" class="h-4 w-4 text-light-blue border-light-blue">
-                        <span class="text-text-gray">Anti-Tamper (-at, --antitamper)</span>
+                        <span class="text-text-gray">Anti-Tamper (-at)</span>
                     </label>
                 </div>
             </div>
@@ -172,17 +172,21 @@
                     method: 'POST',
                     body: formData
                 });
-                console.log('Response status:', response.status, response.statusText);
+                console.log('Response:', response.status, response.statusText);
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${text}`);
+                }
                 const data = await response.json();
                 if (data.error) {
-                    alert(`Error: ${data.error}\nDetails: ${data.details || 'No details provided'}\nStatus: ${response.status}`);
+                    alert(`Error: ${data.error}\nDetails: ${data.details || 'None'}`);
                     outputCode.value = '';
                 } else {
                     outputCode.value = data.obfuscated;
                 }
             } catch (err) {
                 console.error('Fetch error:', err);
-                alert(`Failed to connect to the server: ${err.message}\nCheck console and Vercel logs.`);
+                alert(`Failed to connect: ${err.message}\nCheck Vercel logs.`);
                 outputCode.value = '';
             } finally {
                 obfuscateBtn.disabled = false;
