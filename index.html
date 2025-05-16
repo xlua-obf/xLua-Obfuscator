@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XLua Obfuscator (Hercules)</title>
+    <title>Lua Obfuscator with Hercules</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -54,13 +54,13 @@
                 id="preset"
                 class="w-full p-2 border border-light-blue rounded-md bg-dark-bg text-text-gray mb-4"
             >
-                <option value="--min" class="bg-dark-bg text-text-gray">Minimum Obfuscation</option>
-                <option value="--mid" class="bg-dark-bg text-text-gray">Medium Obfuscation</option>
-                <option value="--max" class="bg-dark-bg text-text-gray">Maximum Obfuscation</option>
-                <option value="custom" class="bg-dark-bg text-text-gray">Custom</option>
+                <option value="--min" class="bg-dark-bg text-text-gray">Minimum Obfuscation (--min)</option>
+                <option value="--mid" class="bg-dark-bg text-text-gray">Medium Obfuscation (--mid)</option>
+                <option value="--max" class="bg-dark-bg text-text-gray">Maximum Obfuscation (--max)</option>
+                <option value="custom" class="bg-dark-bg text-text-gray">Custom Flags</option>
             </select>
             <div id="customFlags" class="hidden border border-light-blue p-4 rounded-md bg-dark-bg">
-                <h3 class="text-md font-medium text-text-gray mb-2">Custom Options</h3>
+                <h3 class="text-md font-medium text-text-gray mb-2">Custom Obfuscation Flags</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <label class="flex items-center space-x-2">
                         <input type="checkbox" name="flags" value="-cf" class="h-4 w-4 text-light-blue border-light-blue">
@@ -132,7 +132,6 @@
         const customFlagsDiv = document.getElementById('customFlags');
         const obfuscateBtn = document.getElementById('obfuscateBtn');
 
-        // Toggle textarea and custom flags
         luaFileInput.addEventListener('change', () => {
             const file = luaFileInput.files[0];
             if (file && file.name.endsWith('.lua')) {
@@ -148,7 +147,6 @@
             customFlagsDiv.classList.toggle('hidden', presetSelect.value !== 'custom');
         });
 
-        // Handle obfuscation
         obfuscateBtn.addEventListener('click', async () => {
             if (!luaFileInput.files[0] && !inputCode.value.trim()) {
                 alert('Please upload a .lua file or enter Lua code.');
@@ -170,7 +168,7 @@
             formData.append('flags', JSON.stringify(flags));
 
             try {
-                const response = await fetch('/.netlify/functions/server', {
+                const response = await fetch('/api/server', {
                     method: 'POST',
                     body: formData
                 });
@@ -184,7 +182,7 @@
                 }
             } catch (err) {
                 console.error('Fetch error:', err);
-                alert(`Failed to connect to the server: ${err.message}\nCheck console for details and Netlify function logs.`);
+                alert(`Failed to connect to the server: ${err.message}\nCheck console and Vercel logs.`);
                 outputCode.value = '';
             } finally {
                 obfuscateBtn.disabled = false;
