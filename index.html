@@ -1,96 +1,194 @@
-const { promises: fs } = require('fs');
-const { exec } = require('child_process');
-const path = require('path');
-const util = require('util');
-
-const execPromise = util.promisify(exec);
-
-// Valid Hercules flags and presets
-const validFlags = [
-    '-cf', '--control_flow',
-    '-se', '--string_encoding',
-    '-vr', '--variable_renaming',
-    '-gci', '--garbage_code',
-    '-opi', '--opaque_preds',
-    '-be', '--bytecode_encoder',
-    '-st', '--string_to_expr',
-    '-vm', '--virtual_machine',
-    '-wif', '--wrap_in_func',
-    '-fi', '--func_inlining',
-    '-dc', '--dynamic_code',
-    '-c', '--compressor',
-    '-at', '--antitamper'
-];
-const validPresets = ['--min', '--mid', '--max'];
-
-// Vercel serverless function
-module.exports = async (req, res) => {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
-
-    try {
-        // Parse FormData
-        const inputCode = req.files?.luafile?.data.toString('utf8') || req.body.code;
-        if (!inputCode) {
-            return res.status(400).json({ error: 'No Lua code or file provided' });
-        }
-
-        // Validate preset or flags
-        const preset = req.body.preset || '';
-        let flags = [];
-        if (preset === 'custom') {
-            try {
-                flags = JSON.parse(req.body.flags || '[]');
-                if (!Array.isArray(flags) || flags.some(f => !validFlags.includes(f))) {
-                    return res.status(400).json({ error: 'Invalid flags provided' });
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lua Obfuscator with Hercules</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#1a1a1a',
+                        'dark-blue': '#1e40af',
+                        'light-blue': '#3b82f6',
+                        'text-gray': '#d1d5db'
+                    }
                 }
-            } catch {
-                return res.status(400).json({ error: 'Invalid flags format' });
             }
-        } else if (preset && !validPresets.includes(preset)) {
-            return res.status(400).json({ error: 'Invalid preset provided' });
         }
+    </script>
+</head>
+<body class="bg-dark-bg min-h-screen flex items-center justify-center">
+    <div class="max-w-4xl w-full bg-dark-bg border border-light-blue p-6 rounded-lg shadow-lg">
+        <h1 class="text-2xl font-bold text-white text-center mb-6">Lua Obfuscator with Hercules</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <h2 class="text-lg font-semibold text-text-gray mb-2">Input Lua Code</h2>
+                <input
+                    type="file"
+                    id="luaFile"
+                    accept=".lua"
+                    class="mb-4 w-full p-2 border border-light-blue rounded-md bg-dark-bg text-text-gray"
+                />
+                <textarea
+                    id="inputCode"
+                    class="w-full h-64 p-2 border border-light-blue rounded-md bg-dark-bg text-text-gray resize-none"
+                    placeholder="Or enter your Lua code here..."
+                ></textarea>
+            </div>
+            <div>
+                <h2 class="text-lg font-semibold text-text-gray mb-2">Obfuscated Output</h2>
+                <textarea
+                    id="outputCode"
+                    class="w-full h-64 p-2 border border-light-blue rounded-md bg-dark-bg text-text-gray resize-none"
+                    placeholder="Obfuscated code will appear here..."
+                    readonly
+                ></textarea>
+            </div>
+        </div>
+        <div class="mt-6">
+            <h2 class="text-lg font-semibold text-text-gray mb-2">Obfuscation Options</h2>
+            <select
+                id="preset"
+                class="w-full p-2 border border-light-blue rounded-md bg-dark-bg text-text-gray mb-4"
+            >
+                <option value="--min" class="bg-dark-bg text-text-gray">Minimum Obfuscation (--min)</option>
+                <option value="--mid" class="bg-dark-bg text-text-gray">Medium Obfuscation (--mid)</option>
+                <option value="--max" class="bg-dark-bg text-text-gray">Maximum Obfuscation (--max)</option>
+                <option value="custom" class="bg-dark-bg text-text-gray">Custom Flags</option>
+            </select>
+            <div id="customFlags" class="hidden border border-light-blue p-4 rounded-md bg-dark-bg">
+                <h3 class="text-md font-medium text-text-gray mb-2">Custom Obfuscation Flags</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-cf" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Control Flow Obfuscation (-cf, --control_flow)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-se" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">String Encoding (-se, --string_encoding)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-vr" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Variable Renaming (-vr, --variable_renaming)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-gci" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Garbage Code Injection (-gci, --garbage_code)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-opi" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Opaque Predicates (-opi, --opaque_preds)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-be" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Bytecode Encoding (-be, --bytecode_encoder)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-st" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">String to Expression (-st, --string_to_expr)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-vm" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Virtual Machine (-vm, --virtual_machine)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-wif" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Function Wrapping (-wif, --wrap_in_func)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-fi" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Function Inlining (-fi, --func_inlining)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-dc" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Dynamic Code (-dc, --dynamic_code)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-c" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Compressor (-c, --compressor)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-at" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Anti-Tamper (-at, --antitamper)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <button
+            id="obfuscateBtn"
+            class="mt-6 w-full py-2 px-4 rounded-md text-white bg-dark-blue hover:bg-light-blue"
+        >
+            Obfuscate Code
+        </button>
+    </div>
+    <script>
+        const luaFileInput = document.getElementById('luaFile');
+        const inputCode = document.getElementById('inputCode');
+        const outputCode = document.getElementById('outputCode');
+        const presetSelect = document.getElementById('preset');
+        const customFlagsDiv = document.getElementById('customFlags');
+        const obfuscateBtn = document.getElementById('obfuscateBtn');
 
-        // Create temp directory
-        const tempDir = path.join(__dirname, 'temp');
-        await fs.mkdir(tempDir, { recursive: true });
+        // Toggle textarea and custom flags
+        luaFileInput.addEventListener('change', () => {
+            const file = luaFileInput.files[0];
+            if (file && file.name.endsWith('.lua')) {
+                inputCode.disabled = true;
+                inputCode.value = '';
+            } else {
+                alert('Please select a .lua file.');
+                luaFileInput.value = null;
+            }
+        });
 
-        // Generate unique filenames
-        const uniqueId = Date.now() + Math.random().toString(36).substring(2);
-        const inputFile = path.join(tempDir, `input_${uniqueId}.lua`);
-        const outputFile = path.join(tempDir, `output_${uniqueId}.lua`);
+        presetSelect.addEventListener('change', () => {
+            customFlagsDiv.classList.toggle('hidden', presetSelect.value !== 'custom');
+        });
 
-        // Write input code
-        await fs.writeFile(inputFile, inputCode);
+        // Handle obfuscation
+        obfuscateBtn.addEventListener('click', async () => {
+            if (!luaFileInput.files[0] && !inputCode.value.trim()) {
+                alert('Please upload a .lua file or enter Lua code.');
+                return;
+            }
 
-        // Construct Hercules command
-        const args = preset && preset !== 'custom' ? preset : flags.join(' ');
-        const command = `lua hercules-obfuscator-main/src/hercules.lua ${args} --sanity -i ${inputFile} -o ${outputFile}`;
+            obfuscateBtn.disabled = true;
+            obfuscateBtn.textContent = 'Obfuscating...';
+            const formData = new FormData();
+            if (luaFileInput.files[0]) {
+                formData.append('luafile', luaFileInput.files[0]);
+            } else {
+                formData.append('code', inputCode.value);
+            }
+            formData.append('preset', presetSelect.value !== 'custom' ? presetSelect.value : '');
+            const flags = presetSelect.value === 'custom'
+                ? Array.from(document.querySelectorAll('input[name="flags"]:checked')).map(input => input.value)
+                : [];
+            formData.append('flags', JSON.stringify(flags));
 
-        // Execute Hercules
-        try {
-            await execPromise(command, { env: { ...process.env, LUA_PATH: 'hercules-obfuscator-main/modules/?.lua' } });
-        } catch (err) {
-            return res.status(500).json({ error: 'Obfuscation failed', details: err.message });
-        }
-
-        // Read output
-        let obfuscatedCode;
-        try {
-            obfuscatedCode = await fs.readFile(outputFile, 'utf8');
-        } catch (err) {
-            return res.status(500).json({ error: 'Failed to read obfuscated output', details: err.message });
-        }
-
-        // Clean up
-        await Promise.all([
-            fs.unlink(inputFile).catch(() => {}),
-            fs.unlink(outputFile).catch(() => {})
-        ]);
-
-        res.status(200).json({ obfuscated: obfuscatedCode });
-    } catch (err) {
-        res.status(500).json({ error: 'Server error', details: err.message });
-    }
-};
+            try {
+                const response = await fetch('/api/server', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.error) {
+                    alert(`Error: ${data.error}\n${data.details || ''}`);
+                    outputCode.value = '';
+                } else {
+                    outputCode.value = data.obfuscated;
+                }
+            } catch (err) {
+                alert('Failed to connect to the server.');
+                outputCode.value = '';
+            } finally {
+                obfuscateBtn.disabled = false;
+                obfuscateBtn.textContent = 'Obfuscate Code';
+            }
+        });
+    </script>
+</body>
+</html>
