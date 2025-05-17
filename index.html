@@ -3,178 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hercules Lua Obfuscator</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="icon" href="img/hercules_icon_svg.svg" type="image/svg+xml">
-    <script src="/node_modules/monaco-editor/min/vs/loader.js"></script>
+    <title>Lua Obfuscator with Hercules</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        require.config({ paths: { vs: '/node_modules/monaco-editor/min/vs' } });
-        window.MonacoEnvironment = {
-            getWorkerUrl: function(workerId, label) {
-                return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
-                    self.MonacoEnvironment = {
-                        baseUrl: '${location.protocol}//${location.host}/node_modules/monaco-editor/min/'
-                    };
-                    importScripts('${location.protocol}//${location.host}/node_modules/monaco-editor/min/vs/base/worker/workerMain.js');
-                `)}`;
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#1a1a1a',
+                        'dark-blue': '#1e40af',
+                        'light-blue': '#3b82f6',
+                        'text-gray': '#d1d5db'
+                    }
+                }
             }
-        };
+        }
     </script>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <a href="/" class="logo-link">
-                <h1><img src="img/hercules_icon_svg.svg" alt="Hercules Logo"> XLua Obfuscator</h1>
-                <p>Secure your Lua code with powerful obfuscation techniques</p>
-            </a>
-        </header>
-
-        <main>
-            <div class="upload-container">
-                <form id="upload-form">
-                    <div class="file-upload-container">
-                        <div class="upload-icon">
-                            <i class="fas fa-file-upload"></i>
-                        </div>
-                        <p>Select a Lua or text file containing Lua code to obfuscate</p>
-                        <p class="drag-info">Drag & drop your file here or</p>
-                        <label for="file-input" class="file-input-label">Select a file</label>
-                        <input type="file" id="file-input" accept=".lua,.txt" hidden>
-                        <p class="file-info" id="file-info">No file selected</p>
-                    </div>
-
-                    <div class="options-container">
-                        <h2>Obfuscation Options</h2>
-                        
-                        <div class="option-group">
-                            <h3>Options</h3>
-                            <div class="radio-group">
-                                <label>
-                                    <input type="radio" name="preset" value="none" checked>
-                                    <span>Custom</span>
-                                </label>
-                                <label>
-                                    <input type="radio" name="preset" value="min">
-                                    <span>Minimal</span>
-                                </label>
-                                <label>
-                                    <input type="radio" name="preset" value="mid">
-                                    <span>Medium</span>
-                                </label>
-                                <label>
-                                    <input type="radio" name="preset" value="max">
-                                    <span>Maximum (Recommended)</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="option-group custom-options">
-                            <h3>Custom Options</h3>
-                            <div class="checkbox-grid">
-                                <label>
-                                    <input type="checkbox" name="controlFlow" checked>
-                                    <span>Control Flow Obfuscation</span>
-                                </label>
-                                <label>
-                                    <input type="checkbox" name="stringEncoding">
-                                    <span>String Encoding</span>
-                                </label>
-                                <label>
-                                    <input type="checkbox" name="variableRenaming" checked>
-                                    <span>Variable Renaming</span>
-                                </label>
-                                <label>
-                                    <input type="checkbox" name="garbageCode" checked>
-                                    <span>Garbage Code Injection</span>
-                                </label>
-                                <label>
-                                    <input type="checkbox" name="opaquePredicates" checked>
-                                    <span>Opaque Predicates</span>
-                                </label>
-                                <label>
-                                    <input type="checkbox" name="functionInlining">
-                                    <span>Function Inlining</span>
-                                </label>
-                                <label>
-                                    <input type="checkbox" name="compressor" checked>
-                                    <span>Compressor</span>
-                                </label>
-                                <label>
-                                    <input type="checkbox" name="bytecodeEncoder">
-                                    <span>Bytecode Encoder</span>
-                                </label>
-                                <label>
-                                    <input type="checkbox" name="stringToExpressions">
-                                    <span>String to Expressions</span>
-                                </label>
-                                <label>
-                                    <input type="checkbox" name="vmGenerator" checked>
-                                    <span>VM Generator</span>
-                                </label>
-                                <label>
-                                    <input type="checkbox" name="wrapInFunction" checked>
-                                    <span>Wrap in Function</span>
-                                </label>
-                                <label>
-                                    <input type="checkbox" name="antiTamper" checked>
-                                    <span>Anti Tamper</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="action-buttons">
-                        <button type="submit" id="obfuscate-btn" disabled>
-                            <i class="fas fa-lock"></i> Obfuscate!
-                        </button>
-                    </div>
-                </form>
+<body class="bg-dark-bg min-h-screen flex items-center justify-center">
+    <div class="max-w-4xl w-full bg-dark-bg border border-light-blue p-6 rounded-lg shadow-lg">
+        <h1 class="text-2xl font-bold text-white text-center mb-6">Lua Obfuscator with Hercules</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <h2 class="text-lg font-semibold text-text-gray mb-2">Input Lua Code</h2>
+                <input
+                    type="file"
+                    id="luaFile"
+                    accept=".lua"
+                    class="mb-4 w-full p-2 border border-light-blue rounded-md bg-dark-bg text-text-gray"
+                />
+                <textarea
+                    id="inputCode"
+                    class="w-full h-64 p-2 border border-light-blue rounded-md bg-dark-bg text-text-gray resize-none"
+                    placeholder="Or enter your Lua code here..."
+                ></textarea>
             </div>
-
-            <div class="result-container" style="display: none;">
-                <h2>New and obfuscated code:</h2>
-                <div class="code-container">
-                    <div id="monaco-editor-container"></div>
-                </div>
-                <div class="action-buttons">
-                    <button id="download-btn">
-                        <i class="fas fa-download"></i> Download as lua file
-                    </button>
-                    <button id="copy-btn">
-                        <i class="fas fa-copy"></i> Copy
-                    </button>
-                    <button id="new-file-btn">
-                        <i class="fas fa-file"></i> Obfuscate Another File
-                    </button>
-                </div>
+            <div>
+                <h2 class="text-lg font-semibold text-text-gray mb-2">Obfuscated Output</h2>
+                <textarea
+                    id="outputCode"
+                    class="w-full h-64 p-2 border border-light-blue rounded-md bg-dark-bg text-text-gray resize-none"
+                    placeholder="Obfuscated code will appear here..."
+                    readonly
+                ></textarea>
             </div>
-        </main>
-
-        <div id="loading-overlay" style="display: none;">
-            <div class="spinner"></div>
-            <p>Obfuscating your code...</p>
         </div>
-        
-        <div id="error-modal" class="error-modal">
-            <div class="error-modal-content">
-                <div class="error-modal-header">
-                    <h3><i class="fas fa-exclamation-triangle"></i> <span id="error-title">Error</span></h3>
-                </div>
-                <div class="error-modal-body">
-                    <p id="error-message">An error has occurred.</p>
-                    <div class="error-code" id="error-code"></div>
-                </div>
-                <div class="error-modal-footer">
-                    <button id="error-ok-btn" class="error-modal-btn">OK</button>
+        <div class="mt-6">
+            <h2 class="text-lg font-semibold text-text-gray mb-2">Obfuscation Options</h2>
+            <select
+                id="preset"
+                class="w-full p-2 border border-light-blue rounded-md bg-dark-bg text-text-gray mb-4"
+            >
+                <option value="--min">Minimum Obfuscation (--min)</option>
+                <option value="--mid">Medium Obfuscation (--mid)</option>
+                <option value="--max">Maximum Obfuscation (--max)</option>
+                <option value="custom">Custom Flags</option>
+            </select>
+            <div id="customFlags" class="hidden border border-light-blue p-4 rounded-md bg-dark-bg">
+                <h3 class="text-md font-medium text-text-gray mb-2">Custom Obfuscation Flags</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-cf" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Control Flow Obfuscation (-cf)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-se" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">String Encoding (-se)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-vr" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Variable Renaming (-vr)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-gci" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Garbage Code Injection (-gci)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-opi" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Opaque Predicates (-opi)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-be" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Bytecode Encoding (-be)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-st" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">String to Expression (-st)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-vm" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Virtual Machine (-vm)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-wif" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Function Wrapping (-wif)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-fi" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Function Inlining (-fi)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-dc" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Dynamic Code (-dc)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-c" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Compressor (-c)</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" name="flags" value="-at" class="h-4 w-4 text-light-blue border-light-blue">
+                        <span class="text-text-gray">Anti-Tamper (-at)</span>
+                    </label>
                 </div>
             </div>
         </div>
-
-      
+        <button
+            id="obfuscateBtn"
+            class="mt-6 w-full py-2 px-4 rounded-md text-white bg-dark-blue hover:bg-light-blue"
+        >
+            Obfuscate Code
+        </button>
     </div>
+    <script>
+        const luaFileInput = document.getElementById('luaFile');
+        const inputCode = document.getElementById('inputCode');
+        const outputCode = document.getElementById('outputCode');
+        const presetSelect = document.getElementById('preset');
+        const customFlagsDiv = document.getElementById('customFlags');
+        const obfuscateBtn = document.getElementById('obfuscateBtn');
 
-    <script src="server.js"></script>
+        luaFileInput.addEventListener('change', () => {
+            const file = luaFileInput.files[0];
+            if (file && file.name.endsWith('.lua')) {
+                inputCode.disabled = true;
+                inputCode.value = '';
+            } else {
+                alert('Please select a .lua file.');
+                luaFileInput.value = null;
+            }
+        });
+
+        presetSelect.addEventListener('change', () => {
+            customFlagsDiv.classList.toggle('hidden', presetSelect.value !== 'custom');
+        });
+
+        obfuscateBtn.addEventListener('click', async () => {
+            if (!luaFileInput.files[0] && !inputCode.value.trim()) {
+                alert('Please upload a .lua file or enter Lua code.');
+                return;
+            }
+
+            obfuscateBtn.disabled = true;
+            obfuscateBtn.textContent = 'Obfuscating...';
+            const formData = new FormData();
+            if (luaFileInput.files[0]) {
+                formData.append('luafile', luaFileInput.files[0]);
+            } else {
+                formData.append('code', inputCode.value);
+            }
+            formData.append('preset', presetSelect.value !== 'custom' ? presetSelect.value : '');
+            const flags = presetSelect.value === 'custom'
+                ? Array.from(document.querySelectorAll('input[name="flags"]:checked')).map(input => input.value)
+                : [];
+            formData.append('flags', JSON.stringify(flags));
+
+            try {
+                const response = await fetch('/api/server', {
+                    method: 'POST',
+                    body: formData
+                });
+                console.log('Response:', response.status, response.statusText);
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${text}`);
+                }
+                const data = await response.json();
+                if (data.error) {
+                    alert(`Error: ${data.error}\nDetails: ${data.details || 'None'}`);
+                    outputCode.value = '';
+                } else {
+                    outputCode.value = data.obfuscated;
+                }
+            } catch (err) {
+                console.error('Fetch error:', err);
+                alert(`Failed to connect: ${err.message}\nCheck Vercel logs.`);
+                outputCode.value = '';
+            } finally {
+                obfuscateBtn.disabled = false;
+                obfuscateBtn.textContent = 'Obfuscate Code';
+            }
+        });
+    </script>
 </body>
 </html>
